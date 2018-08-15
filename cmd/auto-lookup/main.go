@@ -2,64 +2,52 @@ package main
 
 import (
 	"fmt"
-	"net/http"
+	"os"
 
-	"github.com/kylelemons/go-gypsy/yaml"
 	"github.com/mkock/auto-lookup"
 )
 
-func readConfigFrom(fname string) ([]autoservice.ServiceConfig, error) {
-	conf, err := yaml.ReadFile(fname)
-	if err != nil {
-		return nil, err
+func initServices() []autoservice.AutoService {
+	nrpladeService := autoservice.NrpladeService{Service: autoservice.Service{Name: "nrplade"}}
+	services := []autoservice.AutoService{
+		&nrpladeService,
 	}
-	nodes, err := yaml.Child(conf.Root, "services")
-	services, servicesOk := nodes.(yaml.Map)
-	if !servicesOk {
-		return nil, fmt.Errorf("parse YAML file: section 'services' is not a list")
-	}
-	configs := make([]autoservice.ServiceConfig, 0, len(services))
-	var (
-		opts    yaml.Map
-		headers yaml.Map
-		ok      bool
-	)
-	for name, val := range services {
-		fmt.Printf("Identified service %q\n", name)
-		if opts, ok = val.(yaml.Map); !ok {
-			return nil, fmt.Errorf("parse YAML file: service %q does not contain a list of options", name)
-		}
-		node, err := yaml.Child(opts, ".headers")
-		if err != nil {
-			return nil, fmt.Errorf("parse YAML file: service %q contains invalid headers", name)
-		}
-		headers = node.(yaml.Map)
-		httpHeaders := make(http.Header, len(services))
-		for k, v := range headers {
-			httpHeaders.Add(k, v.(yaml.Scalar).String())
-		}
-		country := autoservice.Country(opts.Key("country").(yaml.Scalar).String())
-		config := autoservice.ServiceConfig{
-			Name:    name,
-			Country: country,
-			Host:    opts.Key("host").(yaml.Scalar).String(),
-			Path:    opts.Key("path").(yaml.Scalar).String(),
-			Method:  opts.Key("method").(yaml.Scalar).String(),
-			Token:   opts.Key("token").(yaml.Scalar).String(),
-			Headers: httpHeaders,
-		}
-		configs = append(configs, config)
-	}
-	return configs, nil
+	return services
 }
 
 func main() {
-	configs, err := readConfigFrom("conf.yml")
+	configs, err := autoservice.ReadConfigFrom("conf.yml")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	for i := 0; i < len(configs); i++ {
-		fmt.Printf("%v", configs[i])
+	mngr := autoservice.ServiceManager{}
+
+	// Configure each service dynamically.
+	services := initServices()
+	for _, service := range services {
+		for i := 0; i < len(configs); i++ {
+			fmt.Printf("%v", configs[i])
+			if configs[i].Name == service.Name() {
+				service.Configure(configs[i])
+				mngr.AddService(service)
+			}
+		}
 	}
+	fmt.Printf("Successfully registered %d services.\n", len(mngr))
+
+	// Find and call a Danish service.
+	service := mngr.FindServiceByCountry(autoservice.Country("dk"))
+	if service == nil {
+		fmt.Println("No service available for country dk.")
+		os.Exit(1)
+	}
+	regNo := "RL90123"
+	vehicle, err := service.LookupReg(regNo)
+	if err != nil {
+		fmt.Printf("lookup by regno: %s", err.Error())
+		os.Exit(0)
+	}
+	fmt.Println("found!")
+	fmt.Println(vehicle)
 }

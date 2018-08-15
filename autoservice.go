@@ -36,20 +36,20 @@ type Vehicle struct {
 	Model        string
 	RegNo        string
 	VinNo        string
-	FirstRegDate *time.Time
+	FirstRegDate time.Time
 }
 
 // AutoService defines the interface that each service implementation must satisfy.
 type AutoService interface {
-	Configure(cnf *ServiceConfig) error
-	Supports(country Country) bool
+	Configure(cnf ServiceConfig) error
 	Name() string
-	LookupReg(regNo string) (*Vehicle, error)
-	LookupVin(vinNo string) (*Vehicle, error)
+	Supports(country Country) bool
+	LookupReg(regNo string) (Vehicle, error)
+	LookupVin(vinNo string) (Vehicle, error)
 }
 
 // ServiceManager keeps track of, and lets you interact with, registered auto services.
-type ServiceManager map[string]*AutoService
+type ServiceManager map[string]AutoService
 
 func (mngr *ServiceManager) contains(name string) bool {
 	_, ok := (*mngr)[name]
@@ -61,5 +61,15 @@ func (mngr *ServiceManager) AddService(service AutoService) {
 	if mngr.contains(service.Name()) {
 		return
 	}
-	(*mngr)[service.Name()] = &service
+	(*mngr)[service.Name()] = service
+}
+
+// FindServiceByCountry returns the first service that supports the given country, or nil.
+func (mngr *ServiceManager) FindServiceByCountry(country Country) AutoService {
+	for _, service := range *mngr {
+		if service.Supports(country) {
+			return service
+		}
+	}
+	return nil
 }
