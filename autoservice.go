@@ -39,6 +39,17 @@ type Vehicle struct {
 	FirstRegDate time.Time
 }
 
+// String shows Vehicle in a human readable format.
+func (vehicle Vehicle) String() string {
+	return fmt.Sprintf(`%s %s
+	Brand: %s
+	Model: %s
+	Reg no: %s
+	VIN no: %s
+	First reg.date: %s
+	`, vehicle.Brand, vehicle.Model, vehicle.Brand, vehicle.Model, vehicle.RegNo, vehicle.VinNo, vehicle.FirstRegDate.Format("2006-01-02"))
+}
+
 // AutoService defines the interface that each service implementation must satisfy.
 type AutoService interface {
 	Configure(cnf ServiceConfig) error

@@ -3,6 +3,7 @@ package autoservice
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/kylelemons/go-gypsy/yaml"
 )
@@ -39,10 +40,14 @@ func ReadConfigFrom(fname string) ([]ServiceConfig, error) {
 			httpHeaders.Add(k, v.(yaml.Scalar).String())
 		}
 		country := Country(opts.Key("country").(yaml.Scalar).String())
+		host := opts.Key("host").(yaml.Scalar).String()
+		if !strings.HasPrefix(host, "http") {
+			return nil, fmt.Errorf("parse YAML file: service %q is missing protocol for host", name)
+		}
 		config := ServiceConfig{
 			Name:    name,
 			Country: country,
-			Host:    opts.Key("host").(yaml.Scalar).String(),
+			Host:    host,
 			Path:    opts.Key("path").(yaml.Scalar).String(),
 			Method:  opts.Key("method").(yaml.Scalar).String(),
 			Token:   opts.Key("token").(yaml.Scalar).String(),

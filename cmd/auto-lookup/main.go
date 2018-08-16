@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/mkock/auto-lookup"
 )
@@ -16,6 +17,13 @@ func initServices() []autoservice.AutoService {
 }
 
 func main() {
+	// Get regno/vin no from CLI.
+	if len(os.Args) < 2 {
+		fmt.Println("Please follow program name by a registration or VIN number to lookup, eg. 'auto-lookup.exe BX71743'")
+		fmt.Println("Or, alternatively, write 'test' as registration number to lookup a hard-coded (Danish) registration number.")
+		return
+	}
+
 	configs, err := autoservice.ReadConfigFrom("conf.yml")
 	if err != nil {
 		fmt.Println(err)
@@ -42,12 +50,16 @@ func main() {
 		fmt.Println("No service available for country dk.")
 		os.Exit(1)
 	}
-	regNo := "RL90123"
+	regNo := os.Args[1]
+	if strings.EqualFold(regNo, "test") {
+		regNo = "BX71743" // Test reg.
+	}
+	fmt.Printf("Looking for %s...\n", regNo)
 	vehicle, err := service.LookupReg(regNo)
 	if err != nil {
 		fmt.Printf("lookup by regno: %s", err.Error())
 		os.Exit(0)
 	}
 	fmt.Println("found!")
-	fmt.Println(vehicle)
+	fmt.Printf("%s\n", vehicle)
 }
