@@ -10,8 +10,10 @@ import (
 
 func initServices() []autoservice.AutoService {
 	nrpladeService := autoservice.NrpladeService{Service: autoservice.Service{Name: "nrplade"}}
+	biluppgifterService := autoservice.BiluppgifterService{Service: autoservice.Service{Name: "biluppgifter"}}
 	services := []autoservice.AutoService{
 		&nrpladeService,
+		&biluppgifterService,
 	}
 	return services
 }
@@ -35,7 +37,6 @@ func main() {
 	services := initServices()
 	for _, service := range services {
 		for i := 0; i < len(configs); i++ {
-			fmt.Printf("%v", configs[i])
 			if configs[i].Name == service.Name() {
 				service.Configure(configs[i])
 				mngr.AddService(service)
