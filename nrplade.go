@@ -33,14 +33,12 @@ type nrpladeResponse struct {
 	RegStatus    string `json:"registration_status"`
 }
 
-// LookupReg looks up a vehicle based on registration number.
-func (service *NrpladeService) LookupReg(regNo string) (Vehicle, error) {
+// makeReq performs the request against the Nrpla.de service and the common
+// part of the implementation that allows it to work with both license plate
+// and VIN lookups.
+func (service *NrpladeService) makeReq(reqURL string) (Vehicle, error) {
 	// @TODO it just handles GET for now.
-	u, err := url.Parse(fmt.Sprintf("%s/%s/%s?api_token=%s", service.Conf.Host, service.Conf.Path, regNo, service.Conf.Token))
-	if err != nil {
-		return Vehicle{}, err
-	}
-	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
+	req, err := http.NewRequest(http.MethodGet, reqURL, nil)
 	if err != nil {
 		return Vehicle{}, err
 	}
@@ -50,7 +48,6 @@ func (service *NrpladeService) LookupReg(regNo string) (Vehicle, error) {
 	if err != nil {
 		return Vehicle{}, err
 	}
-	fmt.Println(req.URL)
 	if res.StatusCode != http.StatusOK {
 		return Vehicle{}, fmt.Errorf("service responded with status code %d", res.StatusCode)
 	}
@@ -80,16 +77,22 @@ func (service *NrpladeService) LookupReg(regNo string) (Vehicle, error) {
 	return vehicle, nil
 }
 
+// LookupReg looks up a vehicle based on registration number.
+func (service *NrpladeService) LookupReg(regNo string) (Vehicle, error) {
+	reqURL, err := url.Parse(fmt.Sprintf("%s/%s/%s?api_token=%s", service.Conf.Host, service.Conf.Path, regNo, service.Conf.Token))
+	if err != nil {
+		return Vehicle{}, err
+	}
+	return service.makeReq(reqURL.String())
+}
+
 // LookupVin looks up a vehicle based on VIN number.
 func (service *NrpladeService) LookupVin(vinNo string) (Vehicle, error) {
-	vehicle := Vehicle{
-		Brand:        "Ford",
-		Model:        "GT",
-		RegNo:        "123",
-		VinNo:        "123",
-		FirstRegDate: time.Now(),
+	reqURL, err := url.Parse(fmt.Sprintf("%s/%s/vin/%s?api_token=%s", service.Conf.Host, service.Conf.Path, vinNo, service.Conf.Token))
+	if err != nil {
+		return Vehicle{}, err
 	}
-	return vehicle, nil
+	return service.makeReq(reqURL.String())
 }
 
 // Name returns the service name.

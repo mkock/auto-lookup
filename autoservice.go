@@ -84,3 +84,8 @@ func (mngr *ServiceManager) FindServiceByCountry(country Country) AutoService {
 	}
 	return nil
 }
+
+// IsVIN returns true if the given license number is a VIN number.
+func IsVIN(license string) bool {
+	return len(license) == 17
+}

@@ -18,8 +18,8 @@ func initServices() []autoservice.AutoService {
 
 func main() {
 	// Get regno/vin no from CLI.
-	if len(os.Args) < 2 {
-		fmt.Println("Please follow program name by a registration or VIN number to lookup, eg. 'auto-lookup.exe BX71743'")
+	if len(os.Args) < 3 {
+		fmt.Println("Please follow program name by a country and registration or VIN number to lookup, eg. 'auto-lookup.exe dk BX71743'")
 		fmt.Println("Or, alternatively, write 'test' as registration number to lookup a hard-coded (Danish) registration number.")
 		return
 	}
@@ -44,21 +44,31 @@ func main() {
 	}
 	fmt.Printf("Successfully registered %d services.\n", len(mngr))
 
-	// Find and call a Danish service.
-	service := mngr.FindServiceByCountry(autoservice.Country("dk"))
+	// Find and call the appropriate service.
+	country := os.Args[1]
+	if country == "" {
+		fmt.Println("Missing country identifier: dk or se.")
+		return
+	}
+	service := mngr.FindServiceByCountry(autoservice.Country(country))
 	if service == nil {
-		fmt.Println("No service available for country dk.")
+		fmt.Printf("No service available for country: %s.\n", country)
 		os.Exit(1)
 	}
-	regNo := os.Args[1]
+	regNo := os.Args[2]
 	if strings.EqualFold(regNo, "test") {
 		regNo = "BX71743" // Test reg.
 	}
-	fmt.Printf("Looking for %s...\n", regNo)
-	vehicle, err := service.LookupReg(regNo)
+	fmt.Printf("Looking for %s... ", regNo)
+	var vehicle autoservice.Vehicle
+	if autoservice.IsVIN(regNo) {
+		vehicle, err = service.LookupVin(regNo)
+	} else {
+		vehicle, err = service.LookupReg(regNo)
+	}
 	if err != nil {
-		fmt.Printf("lookup by regno: %s", err.Error())
-		os.Exit(0)
+		fmt.Printf("lookup by regno: %s\n", err.Error())
+		os.Exit(1)
 	}
 	fmt.Println("found!")
 	fmt.Printf("%s\n", vehicle)
