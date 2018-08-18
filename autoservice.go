@@ -16,7 +16,6 @@ type ServiceConfig struct {
 	Country Country
 	Host    string
 	Path    string
-	Method  string
 	Token   string
 	Headers http.Header
 }
@@ -27,7 +26,7 @@ func (cnf ServiceConfig) String() string {
 	for key, val := range cnf.Headers {
 		headers += fmt.Sprintf("%s: %s\n", key, strings.Join(val, ","))
 	}
-	return fmt.Sprintf("name: %s\ncountry: %s\nhost: %s\npath: %s, method: %s\ntoken: %s\nheaders: %s\n\n", cnf.Name, cnf.Country, cnf.Host, cnf.Path, cnf.Method, cnf.Token, headers)
+	return fmt.Sprintf("name: %s\ncountry: %s\nhost: %s\npath: %s\ntoken: %s\nheaders: %s\n\n", cnf.Name, cnf.Country, cnf.Host, cnf.Path, cnf.Token, headers)
 }
 
 // Vehicle contains normalized vehicle data from the auto service.

@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"net/url"
 	"time"
 )
@@ -50,45 +48,24 @@ type attributeResponse struct {
 	VIN   string `json:"vin"`
 }
 
-// makeReq performs the request against the Biluppgifter service and the common
-// part of the implementation that allows it to work with both license plate
-// and VIN lookups.
-func (service *BiluppgifterService) makeReq(reqURL string) (Vehicle, error) {
-	// @TODO it just handles GET for now.
-	req, err := http.NewRequest(http.MethodGet, reqURL, nil)
-	if err != nil {
-		return Vehicle{}, err
-	}
-	req.Header = service.Conf.Headers
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return Vehicle{}, err
-	}
-	if res.StatusCode != http.StatusOK {
-		return Vehicle{}, fmt.Errorf("service responded with status code %d", res.StatusCode)
-	}
-	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return Vehicle{}, err
-	}
+// decodeBiluppgifterBody decodes the HTTP response into a Vehicle.
+func decodeBiluppgifterBody(body []byte) (Vehicle, error) {
 	reader := bytes.NewReader(body)
 	decoder := json.NewDecoder(reader)
-	jsonRes := &biluppgifterData{}
-	err = decoder.Decode(jsonRes)
+	data := &biluppgifterData{}
+	err := decoder.Decode(data)
 	if err != nil {
 		return Vehicle{}, err
 	}
-	regDate, err := time.Parse("2006-01-02", jsonRes.Data.Status.StatusData.FirstReg)
+	regDate, err := time.Parse("2006-01-02", data.Data.Status.StatusData.FirstReg)
 	if err != nil {
 		return Vehicle{}, err
 	}
 	vehicle := Vehicle{
-		Brand:        jsonRes.Data.Basic.Data.Make,
-		Model:        jsonRes.Data.Basic.Data.Model,
-		RegNo:        jsonRes.Data.Attributes.RegNo,
-		VinNo:        jsonRes.Data.Attributes.VIN,
+		Brand:        data.Data.Basic.Data.Make,
+		Model:        data.Data.Basic.Data.Model,
+		RegNo:        data.Data.Attributes.RegNo,
+		VinNo:        data.Data.Attributes.VIN,
 		FirstRegDate: regDate,
 	}
 	return vehicle, nil
@@ -100,7 +77,11 @@ func (service *BiluppgifterService) LookupReg(regNo string) (Vehicle, error) {
 	if err != nil {
 		return Vehicle{}, err
 	}
-	return service.makeReq(reqURL.String())
+	body, err := service.makeReq(reqURL.String())
+	if err != nil {
+		return Vehicle{}, err
+	}
+	return decodeBiluppgifterBody(body)
 }
 
 // LookupVin looks up a vehicle based on VIN number.
@@ -109,7 +90,11 @@ func (service *BiluppgifterService) LookupVin(vinNo string) (Vehicle, error) {
 	if err != nil {
 		return Vehicle{}, err
 	}
-	return service.makeReq(reqURL.String())
+	body, err := service.makeReq(reqURL.String())
+	if err != nil {
+		return Vehicle{}, err
+	}
+	return decodeBiluppgifterBody(body)
 }
 
 // Name returns the service name.

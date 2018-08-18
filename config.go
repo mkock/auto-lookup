@@ -49,7 +49,6 @@ func ReadConfigFrom(fname string) ([]ServiceConfig, error) {
 			Country: country,
 			Host:    host,
 			Path:    opts.Key("path").(yaml.Scalar).String(),
-			Method:  opts.Key("method").(yaml.Scalar).String(),
 			Token:   opts.Key("token").(yaml.Scalar).String(),
 			Headers: httpHeaders,
 		}

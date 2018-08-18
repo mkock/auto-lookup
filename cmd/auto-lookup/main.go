@@ -18,6 +18,18 @@ func initServices() []autoservice.AutoService {
 	return services
 }
 
+// getTestPlateFor returns a test plate for the given country.
+func getTestPlateFor(country string) string {
+	switch country {
+	case "dk":
+		return "BX71743"
+	case "se":
+		return "ONR701"
+	default:
+		return ""
+	}
+}
+
 func main() {
 	// Get regno/vin no from CLI.
 	if len(os.Args) < 3 {
@@ -58,7 +70,9 @@ func main() {
 	}
 	regNo := os.Args[2]
 	if strings.EqualFold(regNo, "test") {
-		regNo = "BX71743" // Test reg.
+		if testPlate := getTestPlateFor(country); testPlate != "" {
+			regNo = testPlate
+		}
 	}
 	fmt.Printf("Looking for %s... ", regNo)
 	var vehicle autoservice.Vehicle

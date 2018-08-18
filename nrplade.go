@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"net/url"
 	"time"
 )
@@ -33,45 +31,24 @@ type nrpladeResponse struct {
 	RegStatus    string `json:"registration_status"`
 }
 
-// makeReq performs the request against the Nrpla.de service and the common
-// part of the implementation that allows it to work with both license plate
-// and VIN lookups.
-func (service *NrpladeService) makeReq(reqURL string) (Vehicle, error) {
-	// @TODO it just handles GET for now.
-	req, err := http.NewRequest(http.MethodGet, reqURL, nil)
-	if err != nil {
-		return Vehicle{}, err
-	}
-	req.Header = service.Conf.Headers
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return Vehicle{}, err
-	}
-	if res.StatusCode != http.StatusOK {
-		return Vehicle{}, fmt.Errorf("service responded with status code %d", res.StatusCode)
-	}
-	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return Vehicle{}, err
-	}
+// decodeNrpladeBody does the decoding of the HTTP response into Vehicle.
+func decodeNrpladeBody(body []byte) (Vehicle, error) {
 	reader := bytes.NewReader(body)
 	decoder := json.NewDecoder(reader)
-	jsonRes := &nrPladeData{}
-	err = decoder.Decode(jsonRes)
+	data := &nrPladeData{}
+	err := decoder.Decode(data)
 	if err != nil {
 		return Vehicle{}, err
 	}
-	regDate, err := time.Parse("2006-01-02", jsonRes.Data.FirstRegDate)
+	regDate, err := time.Parse("2006-01-02", data.Data.FirstRegDate)
 	if err != nil {
 		return Vehicle{}, err
 	}
 	vehicle := Vehicle{
-		Brand:        jsonRes.Data.Brand,
-		Model:        jsonRes.Data.Model,
-		RegNo:        jsonRes.Data.Registration,
-		VinNo:        jsonRes.Data.Vin,
+		Brand:        data.Data.Brand,
+		Model:        data.Data.Model,
+		RegNo:        data.Data.Registration,
+		VinNo:        data.Data.Vin,
 		FirstRegDate: regDate,
 	}
 	return vehicle, nil
@@ -83,7 +60,11 @@ func (service *NrpladeService) LookupReg(regNo string) (Vehicle, error) {
 	if err != nil {
 		return Vehicle{}, err
 	}
-	return service.makeReq(reqURL.String())
+	body, err := service.makeReq(reqURL.String())
+	if err != nil {
+		return Vehicle{}, err
+	}
+	return decodeNrpladeBody(body)
 }
 
 // LookupVin looks up a vehicle based on VIN number.
@@ -92,7 +73,11 @@ func (service *NrpladeService) LookupVin(vinNo string) (Vehicle, error) {
 	if err != nil {
 		return Vehicle{}, err
 	}
-	return service.makeReq(reqURL.String())
+	body, err := service.makeReq(reqURL.String())
+	if err != nil {
+		return Vehicle{}, err
+	}
+	return decodeNrpladeBody(body)
 }
 
 // Name returns the service name.
