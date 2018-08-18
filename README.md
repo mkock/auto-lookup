@@ -32,4 +32,5 @@ for a given country.
 ## Changelog
 
 _v1.1 (2018-08-18)_ - Minor refactoring and code cleanup. Removed HTTP method.
+
 _v1.0 (2018-08-16)_ - Initial version. Supports Danish and Swedish license plates.
