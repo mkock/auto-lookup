@@ -2,7 +2,7 @@ package autoservice
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -40,7 +40,7 @@ func (service *Service) makeReq(reqURL string) ([]byte, error) {
 		return []byte{}, fmt.Errorf("service responded with status code %d", res.StatusCode)
 	}
 	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return []byte{}, err
 	}
